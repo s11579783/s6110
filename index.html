@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數字新農人 - 決策數據可視化</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+       @font-face {
+            font-family: 'FZLBK';
+            src: url('./fonts/FZLBK.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+       @font-face {
+            font-family: 'FZYanZQKSJF';
+            src: url('./fonts/FZYanZQKSJF.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'FZYanZQKSJF', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f5f0;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-image: linear-gradient(to right, #8bc34a, #4caf50);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            font-family: 'FZLBK', sans-serif;
+            margin: 0;
+            font-size: 50px;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+        header p {
+            font-size: 1.1rem;
+            margin: 0;
+            opacity: 0.9;
+        }
+        .decision-path {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .path-title {
+            color: #2e7d32;
+            border-bottom: 2px solid #8bc34a;
+            padding-bottom: 12px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        .decision-steps {
+            margin: 25px 0;
+        }
+        .step {
+            margin: 20px 0;
+        }
+        .step-title {
+            font-weight: bold;
+            color: #3e9c48;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .option {
+            background-color: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 6px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.2rem;
+        }
+        .option:hover {
+            background-color: #c8e6c9;
+        }
+        .option.selected {
+            background-color: #81c784;
+            color: white;
+            border-color: #4caf50;
+        }
+        .option.combo {
+            background-color: #e8f5e9;
+            border: 1px solid #aed581;
+        }
+        .option.combo.selected {
+            background-color: #81c784;
+        }
+        .chart-container {
+            margin: 25px 0;
+            height: 320px;
+        }
+        .results {
+            background-color: #f1f8e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+        .results-title {
+            color: #2e7d32;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .metric {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .metric-name {
+            font-size: 1rem;
+            color: #757575;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2e7d32;
+            line-height: 1.2;
+        }
+        .metric-value.negative {
+            color: #f44336;
+        }
+        .view-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .view-button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'FZYanZQKSJF', sans-serif;
+            letter-spacing: 1px;
+            min-width: 120px;
+            font-size: 1.2rem;
+        }
+        .view-button:hover {
+            background-color: #388e3c;
+        }
+        .view-button.active {
+            background-color: #2e7d32;
+        }
+        .path-container {
+            display: none;
+        }
+        .path-container.active {
+            display: block;
+        }
+        .final-results {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 25px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .final-results h2 {
+            color: #2e7d32;
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+        .final-results p {
+            margin-bottom: 15px;
+            font-size: 1.05rem;
+        }
+        .achievement {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .decision-explanation {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .explanation-title {
+            color: #2e7d32;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #a5d6a7;
+            padding-bottom: 12px;
+            font-size: 1.3rem;
+        }
+        .explanation-content {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            line-height: 1.7;
+        }
+        .explanation-content p {
+            margin-bottom: 15px;
+        }
+        .combo-effect {
+            color: #d84315;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                font-size: 15px;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+            .options {
+                flex-direction: column;
+            }
+            .option {
+                padding: 12px;
+            }
+            .view-button {
+                padding: 10px 15px;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>數字新農人 - 決策數據分析</h1>
+            <p>查看不同決策路徑對鄉村發展的影響</p>
+        </header>
+        
+        <div class="view-controls">
+            <button class="view-button active" data-path="livestream">直播帶貨</button>
+            <button class="view-button" data-path="smartfarming">智慧農業</button>
+            <button class="view-button" data-path="tourism">鄉村旅遊</button>
+        </div>
+        
+        <!-- 直播帶貨路徑 -->
+        <div id="livestream-path" class="path-container active">
+            <div class="decision-path">
+                <h2 class="path-title">直播帶貨發展路徑</h2>
+                
+                <div class="decision-steps">
+                    <div class="step">
+                        <div class="step-title">決策1：選擇主推農產品</div>
+                        <div class="options">
+                            <div class="option selected" data-value="松茸">松茸</div>
+                            <div class="option" data-value="蓮子">蓮子</div>
+                            <div class="option" data-value="梭子蟹">梭子蟹</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策2：直播間風格</div>
+                        <div class="options">
+                            <div class="option selected combo" data-value="田園風">田園風</div>
+                            <div class="option combo" data-value="科技感">科技感</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策3：產品核心賣點</div>
+                        <div class="options">
+                            <div class="option selected combo" data-value="古法工藝">古法工藝</div>
+                            <div class="option" data-value="助農情懷">助農情懷</div>
+                            <div class="option combo" data-value="產地直採">產地直採</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策4：拯救流量低迷危機</div>
+                        <div class="options">
+                            <div class="option selected" data-value="簽約網紅">簽約網紅</div>
+                            <div class="option" data-value="砍價0元購">砍價0元購</div>
+                            <div class="option" data-value="彈幕抽獎">彈幕抽獎</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策5：解決運輸成本過高</div>
+                        <div class="options">
+                            <div class="option selected" data-value="與物流公司談判">與物流公司談判</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="livestreamChart"></canvas>
+                </div>
+                
+                <div class="results">
+                    <h3 class="results-title">經營結果</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-name">銷售額增長</div>
+                            <div class="metric-value" id="livestream-sales">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">粉絲數量增長</div>
+                            <div class="metric-value" id="livestream-fans">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">村民收入增長</div>
+                            <div class="metric-value" id="livestream-income">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">帶動就業增長</div>
+                            <div class="metric-value" id="livestream-jobs">+0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 智慧農業路徑 -->
+        <div id="smartfarming-path" class="path-container">
+            <div class="decision-path">
+                <h2 class="path-title">智慧農業發展路徑</h2>
+                
+                <div class="decision-steps">
+                    <div class="step">
+                        <div class="step-title">決策1：提高農作物產量</div>
+                        <div class="options">
+                            <div class="option selected" data-value="節水灌溉">節水灌溉</div>
+                            <div class="option" data-value="病蟲害預警">病蟲害預警</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="farmingChart"></canvas>
+                </div>
+                
+                <div class="results">
+                    <h3 class="results-title">農業生產結果</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-name">產量增長</div>
+                            <div class="metric-value" id="farming-yield">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">資源節約率</div>
+                            <div class="metric-value" id="farming-resource">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">農民收入增長</div>
+                            <div class="metric-value" id="farming-income">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">耕地效率提升</div>
+                            <div class="metric-value" id="farming-efficiency">+0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 鄉村旅遊路徑 -->
+        <div id="tourism-path" class="path-container">
+            <div class="decision-path">
+                <h2 class="path-title">鄉村旅遊發展路徑</h2>
+                
+                <div class="decision-steps">
+                    <div class="step">
+                        <div class="step-title">決策1：鄉村旅遊產品</div>
+                        <div class="options">
+                            <div class="option selected" data-value="戶外研學">戶外研學</div>
+                            <div class="option" data-value="非遺工作坊">非遺工作坊</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策2：佈置配套設施</div>
+                        <div class="options">
+                            <div class="option selected" data-value="民宿">民宿</div>
+                            <div class="option" data-value="停車場">停車場</div>
+                            <div class="option" data-value="廁所">廁所</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">決策3：安撫投訴遊客</div>
+                        <div class="options">
+                            <div class="option selected" data-value="免費升級房型">免費升級房型</div>
+                            <div class="option" data-value="贈送特色農產品">贈送特色農產品</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="tourismChart"></canvas>
+                </div>
+                
+                <div class="results">
+                    <h3 class="results-title">旅遊經營結果</h3>
+                    <div class="metrics">
+                        <div class="metric">
+                            <div class="metric-name">遊客數量增長</div>
+                            <div class="metric-value" id="tourism-visitors">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">遊客滿意度變化</div>
+                            <div class="metric-value" id="tourism-satisfaction">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">當地就業增長</div>
+                            <div class="metric-value" id="tourism-employment">+0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-name">復遊率提升</div>
+                            <div class="metric-value" id="tourism-return">+0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="final-results">
+            <h2>發展成就</h2>
+            <p>根據您的決策路徑，您獲得了以下成就：</p>
+            <div class="achievement" id="achievement-title">未獲得成就</div>
+        </div>
+        
+        <div class="decision-explanation">
+            <h3 class="explanation-title">決策影響說明</h3>
+            <div class="explanation-content" id="explanation-content">
+                <!-- 這裡會動態顯示決策影響說明 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 切換路徑視圖
+        document.querySelectorAll('.view-button').forEach(button => {
+            button.addEventListener('click', function() {
+                // 移除所有按鈕的活躍狀態
+                document.querySelectorAll('.view-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // 移除所有路徑的活躍狀態
+                document.querySelectorAll('.path-container').forEach(path => {
+                    path.classList.remove('active');
+                });
+                
+                // 添加當前按鈕和路徑的活躍狀態
+                this.classList.add('active');
+                const pathId = this.getAttribute('data-path') + '-path';
+                document.getElementById(pathId).classList.add('active');
+                
+                // 重新計算結果
+                calculateResults();
+            });
+        });
+        
+        // 選擇選項
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', function() {
+                // 移除同級選項的選中狀態
+                const parent = this.closest('.options');
+                parent.querySelectorAll('.option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // 將當前選項設為選中狀態
+                this.classList.add('selected');
+                
+                // 重新計算結果
+                calculateResults();
+            });
+        });
+        
+        // 創建圖表
+        let livestreamChart, farmingChart, tourismChart;
+        
+        function initCharts() {
+            // 直播帶貨圖表
+            const livestreamCtx = document.getElementById('livestreamChart').getContext('2d');
+            livestreamChart = new Chart(livestreamCtx, {
+                type: 'line',
+                data: {
+                    labels: ['開始', '第1週', '第2週', '第3週', '第4週', '第5週', '第6週'],
+                    datasets: [{
+                        label: '銷售額增長',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '粉絲數量增長',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#ff9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            // 智慧農業圖表
+            const farmingCtx = document.getElementById('farmingChart').getContext('2d');
+            farmingChart = new Chart(farmingCtx, {
+                type: 'line',
+                data: {
+                    labels: ['開始', '第1個月', '第2個月', '第3個月', '第4個月', '第5個月', '第6個月'],
+                    datasets: [{
+                        label: '產量增長',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#2196f3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '成本節約',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#9c27b0',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            // 鄉村旅遊圖表
+            const tourismCtx = document.getElementById('tourismChart').getContext('2d');
+            tourismChart = new Chart(tourismCtx, {
+                type: 'line',
+                data: {
+                    labels: ['開始', '第1個月', '第2個月', '第3個月', '第4個月', '第5個月', '第6個月'],
+                    datasets: [{
+                        label: '遊客數量增長',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#e91e63',
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '滿意度變化',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 根據選擇計算結果
+        function calculateResults() {
+            // 獲取當前活躍的路徑
+            const activePath = document.querySelector('.path-container.active').id;
+            let explanationText = "";
+            
+            if (activePath === 'livestream-path') {
+                // 獲取直播帶貨的選擇
+                const product = document.querySelector('#livestream-path .step:nth-child(1) .option.selected').getAttribute('data-value');
+                const style = document.querySelector('#livestream-path .step:nth-child(2) .option.selected').getAttribute('data-value');
+                const selling = document.querySelector('#livestream-path .step:nth-child(3) .option.selected').getAttribute('data-value');
+                const crisis = document.querySelector('#livestream-path .step:nth-child(4) .option.selected').getAttribute('data-value');
+                
+                // 計算銷售額數據
+                let salesData = [0];
+                let fansData = [0];
+                let maxSales = 0;
+                let maxFans = 0;
+                let comboBonus = 1; // 組合加成
+                
+                explanationText = "<p><strong>主推農產品：</strong>";
+                if (product === '松茸') {
+                    maxSales = 25; // 松茸基礎銷售額高
+                    maxFans = 20;
+                    explanationText += "松茸是高價值農產品，基礎銷售額較高(+25%)，能吸引高端客戶群體。";
+                } else if (product === '蓮子') {
+                    maxSales = 18;
+                    maxFans = 15;
+                    explanationText += "蓮子是傳統農產品，基礎銷售額中等(+18%)，受眾廣泛但利潤率較低。";
+                } else if (product === '梭子蟹') {
+                    maxSales = 22;
+                    maxFans = 18;
+                    explanationText += "梭子蟹是海鮮產品，基礎銷售額較高(+22%)，但運輸和保存成本較高。";
+                }
+                
+                explanationText += "</p><p><strong>直播間風格：</strong>";
+                if (style === '田園風') {
+                    maxSales *= 1.2; // 田園風增加銷售額
+                    explanationText += "田園風格直播間能增強農產品真實感，銷售額+20%。";
+                    // 檢查組合效果
+                    if (selling === '古法工藝' || selling === '產地直採') {
+                        comboBonus = 1.15;
+                        explanationText += " <span class='combo-effect'>與" + selling + "形成良好組合，效果額外+15%！</span>";
+                    }
+                } else if (style === '科技感') {
+                    maxFans *= 1.3; // 科技感增加粉絲數
+                    explanationText += "科技感直播間吸引年輕群體，粉絲增長+30%。";
+                }
+                
+                explanationText += "</p><p><strong>產品核心賣點：</strong>";
+                if (selling === '古法工藝') {
+                    maxSales *= 1.1 * comboBonus;
+                    explanationText += "古法工藝強調傳統價值，銷售額+10%";
+                    if (comboBonus > 1) explanationText += "(組合加成後+" + (10*comboBonus).toFixed(0) + "%)";
+                } else if (selling === '助農情懷') {
+                    maxFans *= 1.2;
+                    explanationText += "助農情懷吸引社會責任感強的消費者，粉絲增長+20%";
+                } else if (selling === '產地直採') {
+                    maxSales *= 1.15 * comboBonus;
+                    maxFans *= 1.05;
+                    explanationText += "產地直採強調新鮮度，銷售額+15%，粉絲+5%";
+                    if (comboBonus > 1) explanationText += "(組合加成後銷售額+" + (15*comboBonus).toFixed(0) + "%)";
+                }
+                
+                explanationText += "</p><p><strong>流量危機處理：</strong>";
+                if (crisis === '簽約網紅') {
+                    maxFans *= 1.5;
+                    maxSales *= 1.3;
+                    explanationText += "簽約網紅能快速提升流量，粉絲增長+50%，銷售額+30%，但成本較高。";
+                } else if (crisis === '砍價0元購') {
+                    maxSales *= 1.4;
+                    explanationText += "砍價0元購活動刺激消費，銷售額+40%，但利潤率會下降。";
+                } else if (crisis === '彈幕抽獎') {
+                    maxFans *= 1.3;
+                    maxSales *= 1.2;
+                    explanationText += "彈幕抽獎提高互動率，粉絲增長+30%，銷售額+20%。";
+                }
+                
+                // 生成增長曲線
+                for (let i = 1; i <= 6; i++) {
+                    // 非線性增長曲線
+                    let growth = i <= 3 ? i/3 : (i-1)/5 + 0.6;
+                    salesData.push(Math.round(maxSales * growth));
+                    fansData.push(Math.round(maxFans * growth));
+                }
+                
+                // 更新圖表
+                livestreamChart.data.datasets[0].data = salesData;
+                livestreamChart.data.datasets[1].data = fansData;
+                livestreamChart.update();
+                
+                // 更新結果指標
+                const finalSales = salesData[salesData.length - 1];
+                const finalFans = fansData[fansData.length - 1];
+                const income = Math.round(finalSales * 2.5);
+                const jobs = Math.round(finalSales * 0.8);
+                
+                // 動畫更新數值
+                animateValue('livestream-sales', '+' + finalSales + '%', finalSales);
+                animateValue('livestream-fans', '+' + finalFans + '%', finalFans);
+                animateValue('livestream-income', '+' + income + '%', income);
+                animateValue('livestream-jobs', '+' + jobs + '%', jobs);
+                
+                // 更新成就
+                if (finalSales > 30 && finalFans > 35) {
+                    document.getElementById('achievement-title').textContent = '🏆 直播帶貨王者';
+                } else if (finalSales > 25) {
+                    document.getElementById('achievement-title').textContent = '🌟 電商助農達人';
+                } else if (finalSales > 20) {
+                    document.getElementById('achievement-title').textContent = '🌾 初級農產品經紀人';
+                } else if (finalSales > 15) {
+                    document.getElementById('achievement-title').textContent = '🛒 新手直播主';
+                } else {
+                    document.getElementById('achievement-title').textContent = '🔍 數字營銷探索者';
+                }
+                
+            } else if (activePath === 'smartfarming-path') {
+                // 獲取智慧農業的選擇
+                const tech = document.querySelector('#smartfarming-path .step:nth-child(1) .option.selected').getAttribute('data-value');
+                
+                // 計算產量數據
+                let yieldData = [0];
+                let savingData = [0];
+                let maxYield = 0;
+                let maxSaving = 0;
+                
+                explanationText = "<p><strong>農業技術選擇：</strong>";
+                if (tech === '節水灌溉') {
+                    maxYield = 25; // 調整為20-30%
+                    maxSaving = 30;
+                    explanationText += "節水灌溉技術能提高產量25%，同時節約水資源30%。";
+                } else if (tech === '病蟲害預警') {
+                    maxYield = 20; // 調整為15-25%
+                    maxSaving = 20;
+                    explanationText += "病蟲害預警系統能減少損失，提高產量20%，減少農藥使用20%。";
+                }
+                
+                // 生成增長曲線
+                for (let i = 1; i <= 6; i++) {
+                    // 農業增長曲線更平滑
+                    let growth = Math.pow(i/6, 0.8);
+                    yieldData.push(Math.round(maxYield * growth));
+                    savingData.push(Math.round(maxSaving * growth));
+                }
+                
+                // 更新圖表
+                farmingChart.data.datasets[0].data = yieldData;
+                farmingChart.data.datasets[1].data = savingData;
+                farmingChart.update();
+                
+                // 更新結果指標
+                const finalYield = yieldData[yieldData.length - 1];
+                const finalSaving = savingData[savingData.length - 1];
+                const income = Math.round(finalYield * 0.7);
+                const efficiency = Math.round(finalYield * 0.9);
+                
+                // 動畫更新數值
+                animateValue('farming-yield', '+' + finalYield + '%', finalYield);
+                animateValue('farming-resource', '+' + finalSaving + '%', finalSaving);
+                animateValue('farming-income', '+' + income + '%', income);
+                animateValue('farming-efficiency', '+' + efficiency + '%', efficiency);
+                
+                // 更新成就
+                if (finalYield > 28 && finalSaving > 30) {
+                    document.getElementById('achievement-title').textContent = '🏆 智慧農業先鋒';
+                } else if (finalYield > 25) {
+                    document.getElementById('achievement-title').textContent = '🌱 數字農場管理師';
+                } else if (finalYield > 20) {
+                    document.getElementById('achievement-title').textContent = '🚜 現代農業實踐者';
+                } else {
+                    document.getElementById('achievement-title').textContent = '🔧 農業技術創新者';
+                }
+                
+            } else if (activePath === 'tourism-path') {
+                // 獲取鄉村旅遊的選擇
+                const product = document.querySelector('#tourism-path .step:nth-child(1) .option.selected').getAttribute('data-value');
+                const facility = document.querySelector('#tourism-path .step:nth-child(2) .option.selected').getAttribute('data-value');
+                const service = document.querySelector('#tourism-path .step:nth-child(3) .option.selected').getAttribute('data-value');
+                
+                // 計算遊客數據
+                let visitorData = [0];
+                let satisfactionData = [0];
+                let maxVisitors = 0;
+                let maxSatisfaction = 0;
+                
+                explanationText = "<p><strong>旅遊產品選擇：</strong>";
+                if (product === '戶外研學') {
+                    maxVisitors = 40; // 調整為35-45%
+                    maxSatisfaction = 80;
+                    explanationText += "戶外研學吸引家庭和學校群體，基礎遊客量+40%，滿意度80%。";
+                } else if (product === '非遺工作坊') {
+                    maxVisitors = 25;
+                    maxSatisfaction = 85;
+                    explanationText += "非遺工作坊吸引文化愛好者，基礎遊客量+25%，滿意度85%。";
+                }
+                
+                explanationText += "</p><p><strong>配套設施：</strong>";
+                if (facility === '民宿') {
+                    maxVisitors *= 1.2;
+                    maxSatisfaction *= 1.05;
+                    explanationText += "民宿提供過夜服務，遊客量+20%，滿意度+5%。";
+                } else if (facility === '停車場') {
+                    maxVisitors *= 1.3;
+                    explanationText += "停車場方便自駕遊客，遊客量+30%。";
+                } else if (facility === '廁所') {
+                    maxSatisfaction *= 1.1;
+                    explanationText += "衛生設施改善遊客體驗，滿意度+10%。";
+                }
+                
+                explanationText += "</p><p><strong>投訴處理：</strong>";
+                if (service === '免費升級房型') {
+                    maxSatisfaction *= 1.1;
+                    explanationText += "免費升級房型有效安撫遊客，滿意度+10%。";
+                } else if (service === '贈送特色農產品') {
+                    maxVisitors *= 1.1;
+                    maxSatisfaction *= 1.05;
+                    explanationText += "贈送特色農產品提升口碑，遊客量+10%，滿意度+5%。";
+                }
+                
+                // 生成增長曲線
+                for (let i = 1; i <= 6; i++) {
+                    // 旅遊增長曲線有季節性
+                    let seasonFactor = i % 2 === 0 ? 1.2 : 0.9;
+                    let growth = Math.pow(i/6, 0.6) * seasonFactor;
+                    visitorData.push(Math.round(maxVisitors * growth));
+                    
+                    // 滿意度增長較快然後平穩
+                    let satGrowth = 1 - Math.exp(-i/2);
+                    satisfactionData.push(Math.round(maxSatisfaction * satGrowth));
+                }
+                
+                // 更新圖表
+                tourismChart.data.datasets[0].data = visitorData;
+                tourismChart.data.datasets[1].data = satisfactionData;
+                tourismChart.update();
+                
+                // 更新結果指標
+                const finalVisitors = visitorData[visitorData.length - 1];
+                const finalSatisfaction = satisfactionData[satisfactionData.length - 1];
+                const employment = Math.round(finalVisitors * 0.6);
+                const returnRate = Math.round(finalSatisfaction * 0.5);
+                
+                // 動畫更新數值
+                animateValue('tourism-visitors', '+' + finalVisitors + '%', finalVisitors);
+                animateValue('tourism-satisfaction', '+' + finalSatisfaction + '%', finalSatisfaction);
+                animateValue('tourism-employment', '+' + employment + '%', employment);
+                animateValue('tourism-return', '+' + returnRate + '%', returnRate);
+                
+                // 更新成就
+                if (finalVisitors > 35 && finalSatisfaction > 85) {
+                    document.getElementById('achievement-title').textContent = '🏆 鄉村旅遊引領者';
+                } else if (finalVisitors > 30) {
+                    document.getElementById('achievement-title').textContent = '🌳 鄉村體驗設計師';
+                } else if (finalVisitors > 25) {
+                    document.getElementById('achievement-title').textContent = '🏡 田園生活推廣員';
+                } else {
+                    document.getElementById('achievement-title').textContent = '🌻 鄉村旅遊初學者';
+                }
+            }
+            
+            // 更新決策說明
+            document.getElementById('explanation-content').innerHTML = explanationText;
+        }
+        
+        // 數值動畫函數
+        function animateValue(elementId, endValue, value) {
+            const element = document.getElementById(elementId);
+            element.textContent = endValue;
+            
+            // 根據數值正負設置顏色
+            if (value < 0) {
+                element.classList.add('negative');
+                element.classList.remove('metric-value');
+            } else {
+                element.classList.remove('negative');
+                element.classList.add('metric-value');
+            }
+        }
+        
+        // 初始化
+        window.onload = function() {
+            initCharts();
+            calculateResults();
+        };
+    </script>
+</body>
+</html>
