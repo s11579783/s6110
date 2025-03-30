@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>數字新農人 - 決策數據可視化</title>
+    <link rel="icon" href="data:,"> <!-- 禁用favicon请求 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
        @font-face {
@@ -256,7 +257,48 @@
                 font-size: 0.95rem;
             }
         }
+                /* 新增音乐控制按钮样式 */
+        .music-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2c7d31;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        
+        .music-control i {
+            font-size: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+            
+            .control-panel, .visual-panel {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .plant-container {
+                height: 200px;
+            }
+        }
     </style>
+    <!-- 引入Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -465,6 +507,16 @@
         </div>
     </div>
 
+    <!-- 新增音乐控制按钮 -->
+    <div class="music-control" id="musicControl">
+        <i class="fas fa-music"></i>
+    </div>
+
+    <!-- 新增音频元素 -->
+    <audio id="bgMusic" loop>
+        <source src="https://s11579783.github.io/music/background-music.mp3" type="audio/mpeg">
+    </audio>
+    
     <script>
         // 切換路徑視圖
         document.querySelectorAll('.view-button').forEach(button => {
@@ -960,11 +1012,68 @@
                 element.classList.add('metric-value');
             }
         }
-        
+        // 音乐控制功能
+function initMusic() {
+    const musicControl = document.getElementById('musicControl');
+    const bgMusic = document.getElementById('bgMusic');
+    let isMusicPlaying = true; // 默认设为true表示播放状态
+    
+    // 尝试自动播放（不静音）
+    bgMusic.muted = false;
+    bgMusic.play()
+        .then(() => {
+            console.log("背景音乐已播放");
+            musicControl.innerHTML = '<i class="fas fa-pause"></i>'; // 显示暂停图标
+        })
+        .catch(e => {
+            console.log("自动播放被阻止:", e);
+            // 如果自动播放失败，改为静音自动播放
+            bgMusic.muted = true;
+            bgMusic.play()
+                .then(() => {
+                    console.log("背景音乐已加载（静音）");
+                    musicControl.innerHTML = '<i class="fas fa-music"></i>'; // 显示音乐图标
+                    isMusicPlaying = false; // 标记为静音状态
+                });
+        });
+    
+    // 点击音乐控制按钮
+    musicControl.addEventListener('click', function() {
+        if (isMusicPlaying) {
+            bgMusic.pause();
+            musicControl.innerHTML = '<i class="fas fa-music"></i>';
+        } else {
+            bgMusic.muted = false;
+            bgMusic.play()
+                .then(() => {
+                    musicControl.innerHTML = '<i class="fas fa-pause"></i>';
+                })
+                .catch(e => {
+                    console.log("播放失败:", e);
+                    alert("请点击页面任意位置后，再点击音乐按钮");
+                });
+        }
+        isMusicPlaying = !isMusicPlaying;
+    });
+    
+    // 用户首次交互后尝试取消静音（如果之前是静音状态）
+    document.addEventListener('click', function firstInteraction() {
+        if (bgMusic.muted) {
+            bgMusic.muted = false;
+            bgMusic.play()
+                .then(() => {
+                    musicControl.innerHTML = '<i class="fas fa-pause"></i>';
+                    isMusicPlaying = true;
+                });
+        }
+        document.removeEventListener('click', firstInteraction);
+    }, { once: true });
+}
         // 初始化
         window.onload = function() {
             initCharts();
             calculateResults();
+            initMusic(); // 初始化音乐控制
         };
     </script>
 </body>
