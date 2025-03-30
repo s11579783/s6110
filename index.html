@@ -233,31 +233,7 @@
             font-weight: bold;
         }
         
-        @media (max-width: 768px) {
-            body {
-                font-size: 15px;
-            }
-            .container {
-                padding: 15px;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-            .metrics {
-                grid-template-columns: 1fr;
-            }
-            .options {
-                flex-direction: column;
-            }
-            .option {
-                padding: 12px;
-            }
-            .view-button {
-                padding: 10px 15px;
-                font-size: 0.95rem;
-            }
-        }
-                /* 新增音乐控制按钮样式 */
+        /* 新增音乐控制按钮样式 */
         .music-control {
             position: fixed;
             bottom: 20px;
@@ -280,20 +256,27 @@
         }
         
         @media (max-width: 768px) {
-            .dashboard {
+            body {
+                font-size: 15px;
+            }
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+            .options {
                 flex-direction: column;
             }
-            
-            .control-panel, .visual-panel {
-                min-width: 100%;
+            .option {
+                padding: 12px;
             }
-            
-            h1 {
-                font-size: 24px;
-            }
-            
-            .plant-container {
-                height: 200px;
+            .view-button {
+                padding: 10px 15px;
+                font-size: 0.95rem;
             }
         }
     </style>
@@ -595,18 +578,19 @@
                         x: {
                             grid: {
                                 display: false
-                            },
-                            ticks: {
-                                display: false
                             }
                         },
                         y: {
                             beginAtZero: true,
                             grid: {
-                                display: false
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
-                                display: false
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                stepSize: 20
                             }
                         }
                     },
@@ -652,18 +636,19 @@
                         x: {
                             grid: {
                                 display: false
-                            },
-                            ticks: {
-                                display: false
                             }
                         },
                         y: {
                             beginAtZero: true,
                             grid: {
-                                display: false
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
-                                display: false
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                stepSize: 10
                             }
                         }
                     },
@@ -709,18 +694,19 @@
                         x: {
                             grid: {
                                 display: false
-                            },
-                            ticks: {
-                                display: false
                             }
                         },
                         y: {
                             beginAtZero: true,
                             grid: {
-                                display: false
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
-                                display: false
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                stepSize: 20
                             }
                         }
                     },
@@ -828,7 +814,7 @@
                 // 更新結果指標
                 const finalSales = salesData[salesData.length - 1];
                 const finalFans = fansData[fansData.length - 1];
-                const income = Math.round(finalSales * 2.5);
+                const income = Math.round(finalSales * 1.5);
                 const jobs = Math.round(finalSales * 0.8);
                 
                 // 動畫更新數值
@@ -974,7 +960,7 @@
                 const finalVisitors = visitorData[visitorData.length - 1];
                 const finalSatisfaction = satisfactionData[satisfactionData.length - 1];
                 const employment = Math.round(finalVisitors * 0.6);
-                const returnRate = Math.round(finalSatisfaction * 0.5);
+                const returnRate = Math.round(finalSatisfaction * 0.4);
                 
                 // 動畫更新數值
                 animateValue('tourism-visitors', '+' + finalVisitors + '%', finalVisitors);
@@ -1012,63 +998,44 @@
                 element.classList.add('metric-value');
             }
         }
+        
         // 音乐控制功能
-function initMusic() {
-    const musicControl = document.getElementById('musicControl');
-    const bgMusic = document.getElementById('bgMusic');
-    let isMusicPlaying = true; // 默认设为true表示播放状态
-    
-    // 尝试自动播放（不静音）
-    bgMusic.muted = false;
-    bgMusic.play()
-        .then(() => {
-            console.log("背景音乐已播放");
-            musicControl.innerHTML = '<i class="fas fa-pause"></i>'; // 显示暂停图标
-        })
-        .catch(e => {
-            console.log("自动播放被阻止:", e);
-            // 如果自动播放失败，改为静音自动播放
-            bgMusic.muted = true;
-            bgMusic.play()
-                .then(() => {
-                    console.log("背景音乐已加载（静音）");
-                    musicControl.innerHTML = '<i class="fas fa-music"></i>'; // 显示音乐图标
-                    isMusicPlaying = false; // 标记为静音状态
-                });
-        });
-    
-    // 点击音乐控制按钮
-    musicControl.addEventListener('click', function() {
-        if (isMusicPlaying) {
-            bgMusic.pause();
-            musicControl.innerHTML = '<i class="fas fa-music"></i>';
-        } else {
-            bgMusic.muted = false;
-            bgMusic.play()
-                .then(() => {
-                    musicControl.innerHTML = '<i class="fas fa-pause"></i>';
-                })
-                .catch(e => {
-                    console.log("播放失败:", e);
-                    alert("请点击页面任意位置后，再点击音乐按钮");
-                });
+        function initMusic() {
+            const musicControl = document.getElementById('musicControl');
+            const bgMusic = document.getElementById('bgMusic');
+            let isMusicPlaying = false;
+            
+            // 点击音乐控制按钮
+            musicControl.addEventListener('click', function() {
+                if (isMusicPlaying) {
+                    bgMusic.pause();
+                    musicControl.innerHTML = '<i class="fas fa-music"></i>';
+                } else {
+                    bgMusic.play()
+                        .then(() => {
+                            musicControl.innerHTML = '<i class="fas fa-pause"></i>';
+                        })
+                        .catch(e => {
+                            console.log("播放失败:", e);
+                            alert("请点击页面任意位置后，再点击音乐按钮");
+                        });
+                }
+                isMusicPlaying = !isMusicPlaying;
+            });
+            
+            // 用户首次交互后尝试播放音乐
+            document.addEventListener('click', function firstInteraction() {
+                if (!isMusicPlaying) {
+                    bgMusic.play()
+                        .then(() => {
+                            musicControl.innerHTML = '<i class="fas fa-pause"></i>';
+                            isMusicPlaying = true;
+                        });
+                }
+                document.removeEventListener('click', firstInteraction);
+            }, { once: true });
         }
-        isMusicPlaying = !isMusicPlaying;
-    });
-    
-    // 用户首次交互后尝试取消静音（如果之前是静音状态）
-    document.addEventListener('click', function firstInteraction() {
-        if (bgMusic.muted) {
-            bgMusic.muted = false;
-            bgMusic.play()
-                .then(() => {
-                    musicControl.innerHTML = '<i class="fas fa-pause"></i>';
-                    isMusicPlaying = true;
-                });
-        }
-        document.removeEventListener('click', firstInteraction);
-    }, { once: true });
-}
+        
         // 初始化
         window.onload = function() {
             initCharts();
